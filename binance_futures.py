@@ -15,5 +15,3 @@ def get_contracts():
 
     return contracts
 
-
-print(get_contracts())
