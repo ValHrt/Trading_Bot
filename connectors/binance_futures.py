@@ -1,23 +1,42 @@
 import logging
 import requests
+import time
+
+from urllib.parse import urlencode
+
+import hmac
+import hashlib
+
 
 logger = logging.getLogger()
 
 
 class BinanceFuturesClient:
-    def __init__(self, testnet):
+    def __init__(self, public_key, secret_key, testnet):
         if testnet:
             self.base_url = "https://testnet.binancefuture.com"
         else:
             self.base_url = "https://fapi.binance.com"
 
+        self.public_key = public_key
+        self.secret_key = secret_key
+
+        self.headers = {'X-MBX-APIKEY': self.public_key}
+
         logger.info("Binance Futures Client initialisé avec succès")
 
         self.prices = dict()
 
+    def generate_signature(self, data):
+        return hmac.new(self.secret_key.encode(), urlencode(data).encode(), hashlib.sha256).hexdigest()
+
     def make_request(self, method, endpoint, data):
         if method == 'GET':
-            response = requests.get(self.base_url + endpoint, params=data)
+            response = requests.get(self.base_url + endpoint, params=data, headers=self.headers)
+        elif method == 'POST':
+            response = requests.post(self.base_url + endpoint, params=data, headers=self.headers)
+        elif method == 'DELETE':
+            response = requests.delete(self.base_url + endpoint, params=data, headers=self.headers)
         else:
             raise ValueError()
 
@@ -68,3 +87,61 @@ class BinanceFuturesClient:
                 self.prices[symbol]['ask'] = float(ob_data['askPrice'])
 
         return self.prices[symbol]
+
+    def get_balances(self):
+        data = dict()
+        data['timestamp'] = int(time.time() * 1000)
+        data['signature'] = self.generate_signature(data)
+
+        balances = dict()
+
+        account_data = self.make_request("GET", "/fapi/v1/account", data)
+
+        if account_data is not None:
+            for a in account_data['assets']:
+                balances[a['asset']] = a
+
+        return balances
+
+    def place_order(self, symbol, side, quantity, order_type, price=None, tif=None): # TODO erreur sur ce bloc
+        data = dict()
+        data['symbol'] = symbol
+        data['side'] = side
+        data['quantity'] = quantity
+        data['type'] = order_type
+
+        if price is not None:
+            data['price'] = price
+
+        if tif is not None:
+            data['timeInForce'] = tif
+
+        data['timestamp'] = int(time.time() * 1000)
+        data['signature'] = self.generate_signature(data)
+
+        order_status = self.make_request("POST", "/fapi/V1/order", data)
+
+        return order_status
+
+    def cancel_order(self, symbol, order_id):
+        data = dict()
+        data['symbol'] = symbol
+        data['orderId'] = order_id
+
+        data['timestamp'] = int(time.time() * 1000)
+        data['signature'] = self.generate_signature(data)
+
+        order_status = self.make_request("DELETE", "/fapi/V1/order", data)
+
+        return order_status
+
+    def get_order_status(self, symbol, order_id):
+        data = dict()
+        data['timestamp'] = int(time.time() * 1000)
+        data['symbol'] = symbol
+        data['orderId'] = order_id
+        data['signature'] = self.generate_signature(data)
+
+        order_status = self.make_request("GET", "/fapi/v1/order", data)
+
+        return order_status
