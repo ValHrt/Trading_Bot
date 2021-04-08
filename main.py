@@ -1,6 +1,7 @@
 import tkinter as tk
 import logging
 from connectors.binance_futures import BinanceFuturesClient
+import config
 
 logger = logging.getLogger()
 
@@ -20,8 +21,9 @@ logger.addHandler(file_handler)
 
 if __name__ == '__main__':
 
-    binance = BinanceFuturesClient(True)
-    print(binance.place_order("BTCUSDT", "BUY", 0.01, "LIMIT", 20000, "GTC"))
+    binance = BinanceFuturesClient(config.api_key_testnet_binance, config.api_secret_testnet_binance, True)
+    print(binance.get_balances())
+    print(binance.get_order_status('BTCUSDT', 2678231258))
 
     root = tk.Tk()
     root.mainloop()

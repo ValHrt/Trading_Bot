@@ -103,7 +103,7 @@ class BinanceFuturesClient:
 
         return balances
 
-    def place_order(self, symbol, side, quantity, order_type, price=None, tif=None): # TODO erreur sur ce bloc
+    def place_order(self, symbol, side, quantity, order_type, price=None, tif=None):
         data = dict()
         data['symbol'] = symbol
         data['side'] = side
@@ -119,7 +119,7 @@ class BinanceFuturesClient:
         data['timestamp'] = int(time.time() * 1000)
         data['signature'] = self.generate_signature(data)
 
-        order_status = self.make_request("POST", "/fapi/V1/order", data)
+        order_status = self.make_request("POST", "/fapi/v1/order", data)
 
         return order_status
 
@@ -131,7 +131,7 @@ class BinanceFuturesClient:
         data['timestamp'] = int(time.time() * 1000)
         data['signature'] = self.generate_signature(data)
 
-        order_status = self.make_request("DELETE", "/fapi/V1/order", data)
+        order_status = self.make_request("DELETE", "/fapi/v1/order", data)
 
         return order_status
 
