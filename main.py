@@ -22,8 +22,6 @@ logger.addHandler(file_handler)
 if __name__ == '__main__':
 
     binance = BinanceFuturesClient(config.api_key_testnet_binance, config.api_secret_testnet_binance, True)
-    print(binance.get_balances())
-    print(binance.get_order_status('BTCUSDT', 2678231258))
 
     root = tk.Tk()
     root.mainloop()
