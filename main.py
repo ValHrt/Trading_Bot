@@ -1,6 +1,7 @@
 import tkinter as tk
 import logging
 from connectors.binance_futures import BinanceFuturesClient
+from connectors.bitmex import BitmexClient
 import config
 
 logger = logging.getLogger()
@@ -22,6 +23,10 @@ logger.addHandler(file_handler)
 if __name__ == '__main__':
 
     binance = BinanceFuturesClient(config.api_key_testnet_binance, config.api_secret_testnet_binance, True)
+    bitmex = BitmexClient(config.api_key_testnet_bitmex, config.api_secret_testnet_bitmex, True)
+
+    print(bitmex.contracts['XBTUSD'].base_asset, bitmex.contracts['XBTUSD'].price_decimals)
+    print(bitmex.balances['XBt'].wallet_balance)
 
     root = tk.Tk()
     root.mainloop()
