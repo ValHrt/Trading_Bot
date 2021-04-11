@@ -15,7 +15,6 @@ import threading
 
 from models import *
 
-
 logger = logging.getLogger()
 
 
@@ -104,7 +103,7 @@ class BinanceFuturesClient:
 
         if raw_candles is not None:
             for c in raw_candles:
-                candles.append(Candle(c, "binance"))
+                candles.append(Candle(c, interval, "binance"))
 
         return candles
 
@@ -137,7 +136,8 @@ class BinanceFuturesClient:
 
         return balances
 
-    def place_order(self, contract: Contract, side: str, quantity: float, order_type: str, price=None, tif=None) -> OrderStatus:
+    def place_order(self, contract: Contract, side: str, quantity: float, order_type: str, price=None,
+                    tif=None) -> OrderStatus:
         data = dict()
         data['symbol'] = contract.symbol
         data['side'] = side
@@ -190,12 +190,12 @@ class BinanceFuturesClient:
         return order_status
 
     def _start_ws(self):
-        self.ws = websocket.WebSocketApp(self._wss_url, on_open=self._on_open, on_close=self._on_close,
-                                         on_error=self._on_error, on_message=self._on_message)
+        self._ws = websocket.WebSocketApp(self._wss_url, on_open=self._on_open, on_close=self._on_close,
+                                          on_error=self._on_error, on_message=self._on_message)
 
         while True:
             try:
-                self.ws.run_forever()
+                self._ws.run_forever()
             except Exception as e:
                 logger.error("Binance : erreur sur la méthode run_forever() : %s", e)
             time.sleep(2)
@@ -203,7 +203,7 @@ class BinanceFuturesClient:
     def _on_open(self, ws):
         logger.info("Connexion ouverte avec Binance")
 
-        self.subscribe_channel(list(self.contracts.values()), "bookTicker")
+        self.subscribe_channel(self.contracts['BTCUSDT'])
 
     def _on_close(self, ws):
         logger.warning("Connexion à Binance fermée")
@@ -226,18 +226,16 @@ class BinanceFuturesClient:
                     self.prices[symbol]['bid'] = float(data['b'])
                     self.prices[symbol]['ask'] = float(data['a'])
 
-    def subscribe_channel(self, contracts: typing.List[Contract], channel: str):
+    def subscribe_channel(self, contract: Contract):
         data = dict()
         data['method'] = 'SUBSCRIBE'
         data['params'] = []
-
-        for contract in contracts:
-            data['params'].append(contract.symbol.lower() + "@" + channel)
+        data['params'].append(contract.symbol.lower() + "@bookTicker")
         data['id'] = self._ws_id
 
         try:
-            self.ws.send(json.dumps(data))
+            self._ws.send(json.dumps(data))
         except Exception as e:
-            logger.error("Erreur Websocket pour souscrire à %s %s: %s", len(contracts), channel, e)
+            logger.error("Erreur Websocket pour souscrire à %s: %s", contract.symbol, e)
 
         self._ws_id += 1
