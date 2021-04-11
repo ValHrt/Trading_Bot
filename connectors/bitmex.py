@@ -15,7 +15,6 @@ import threading
 
 from models import *
 
-
 logger = logging.getLogger()
 
 
@@ -38,8 +37,8 @@ class BitmexClient:
 
         self.prices = dict()
 
-        # t = threading.Thread(target=self._start_ws)
-        # t.start()
+        t = threading.Thread(target=self._start_ws)
+        t.start()
 
         logger.info("Bitmex Client initialisé avec succès")
 
@@ -119,18 +118,20 @@ class BitmexClient:
         data['partial'] = True
         data['binSize'] = timeframe
         data['count'] = 500
+        data['reverse'] = True
 
         raw_candles = self._make_request("GET", "/api/v1/trade/bucketed", data)
 
         candles = []
 
         if raw_candles is not None:
-            for c in raw_candles:
-                candles.append(Candle(c, "bitmex"))
+            for c in reversed(raw_candles):
+                candles.append(Candle(c, timeframe, "bitmex"))
 
         return candles
 
-    def place_order(self, contract: Contract, order_type: str, quantity: int, side: str, price=None, tif=None) -> OrderStatus:
+    def place_order(self, contract: Contract, order_type: str, quantity: int, side: str, price=None,
+                    tif=None) -> OrderStatus:
         data = dict()
 
         data['symbol'] = contract.symbol
@@ -151,7 +152,7 @@ class BitmexClient:
 
         return order_status
 
-    def cancel_order(self, order_id: str):
+    def cancel_order(self, order_id: str) -> OrderStatus:
         data = dict()
 
         data['orderID'] = order_id
@@ -163,7 +164,7 @@ class BitmexClient:
 
         return order_status
 
-    def get_order_status(self, order_id: str, contract: Contract):
+    def get_order_status(self, order_id: str, contract: Contract) -> OrderStatus:
         data = dict()
 
         data['symbol'] = contract.symbol
@@ -176,4 +177,55 @@ class BitmexClient:
                 if order['orderID'] == order_id:
                     return OrderStatus(order, 'bitmex')
 
+    def _start_ws(self):
+        self._ws = websocket.WebSocketApp(self._wss_url, on_open=self._on_open, on_close=self._on_close,
+                                          on_error=self._on_error, on_message=self._on_message)
 
+        while True:
+            try:
+                self._ws.run_forever()
+            except Exception as e:
+                logger.error("Bitmex : erreur sur la méthode run_forever() : %s", e)
+            time.sleep(2)
+
+    def _on_open(self, ws):
+        logger.info("Connexion ouverte avec Bitmex")
+
+        self.subscribe_channel("instrument")
+
+    def _on_close(self, ws):
+        logger.warning("Connexion à Bitmex fermée")
+
+    def _on_error(self, ws, msg: str):
+        logger.error("Bitmex erreur de connexion : %s", msg)
+
+    def _on_message(self, ws, msg: str):
+
+        data = json.loads(msg)
+
+        if "table" in data:
+            if data["table"] == "instrument":
+
+                for d in data["data"]:
+
+                    symbol = d["symbol"]
+
+                    if symbol not in self.prices:
+                        self.prices[symbol] = {'bid': None, 'ask': None}
+
+                    if 'bidPrice' in d:
+                        self.prices[symbol]['bid'] = d['bidPrice']
+
+                    if 'askPrice' in d:
+                        self.prices[symbol]['ask'] = d['askPrice']
+
+    def subscribe_channel(self, topic: str):
+        data = dict()
+        data['op'] = 'subscribe'
+        data['args'] = []
+        data['args'].append(topic)
+
+        try:
+            self._ws.send(json.dumps(data))
+        except Exception as e:
+            logger.error("Erreur Websocket pour souscrire à %s: %s", topic, e)
