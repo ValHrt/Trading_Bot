@@ -25,7 +25,7 @@ if __name__ == '__main__':
     binance = BinanceFuturesClient(config.api_key_testnet_binance, config.api_secret_testnet_binance, True)
     bitmex = BitmexClient(config.api_key_testnet_bitmex, config.api_secret_testnet_bitmex, True)
 
-    print(bitmex.cancel_order("XXXXXXXXXXXXXXX").status)
+    bitmex.get_historical_candles(bitmex.contracts['XBTUSD'], '1h')
 
     root = tk.Tk()
     root.mainloop()
