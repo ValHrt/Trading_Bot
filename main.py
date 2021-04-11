@@ -25,8 +25,7 @@ if __name__ == '__main__':
     binance = BinanceFuturesClient(config.api_key_testnet_binance, config.api_secret_testnet_binance, True)
     bitmex = BitmexClient(config.api_key_testnet_bitmex, config.api_secret_testnet_bitmex, True)
 
-    print(bitmex.contracts['XBTUSD'].base_asset, bitmex.contracts['XBTUSD'].price_decimals)
-    print(bitmex.balances['XBt'].wallet_balance)
+    print(bitmex.cancel_order("XXXXXXXXXXXXXXX").status)
 
     root = tk.Tk()
     root.mainloop()
