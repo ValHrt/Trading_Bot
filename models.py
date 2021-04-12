@@ -45,6 +45,19 @@ class Candle:
             self.volume = candle_info['volume']
 
 
+def tick_to_decimals(tick_size: float,) -> int:
+    tick_size_str = "{0:.8f}".format(tick_size)
+    while tick_size_str[-1] == "0":
+        tick_size_str = tick_size_str[:-1]
+
+    split_tick = tick_size_str.split(".")
+
+    if len(split_tick) > 1:
+        return len(split_tick[1])
+    else:
+        return 0
+
+
 class Contract:
     def __init__(self, contract_info, exchange):
         if exchange == "binance":
@@ -53,13 +66,17 @@ class Contract:
             self.quote_asset = contract_info['quoteAsset']
             self.price_decimals = contract_info['pricePrecision']
             self.quantity_decimals = contract_info['quantityPrecision']
+            self.tick_size = 1 / pow(10, contract_info['pricePrecision'])
+            self.lot_size = 1 / pow(10, contract_info['quantityPrecision'])
 
         elif exchange == "bitmex":
             self.symbol = contract_info['symbol']
             self.base_asset = contract_info['rootSymbol']
             self.quote_asset = contract_info['quoteCurrency']
-            self.price_decimals = contract_info['tickSize']
-            self.quantity_decimals = contract_info['lotSize']
+            self.price_decimals = tick_to_decimals(contract_info['tickSize'])
+            self.quantity_decimals = tick_to_decimals(contract_info['lotSize'])
+            self.tick_size = contract_info['tickSize']
+            self.lot_size = contract_info['lotSize']
 
 
 class OrderStatus:
