@@ -4,6 +4,8 @@ from connectors.binance_futures import BinanceFuturesClient
 from connectors.bitmex import BitmexClient
 import config
 
+from interface.root_component import Root
+
 logger = logging.getLogger()
 
 logger.setLevel(logging.INFO)
@@ -25,7 +27,5 @@ if __name__ == '__main__':
     binance = BinanceFuturesClient(config.api_key_testnet_binance, config.api_secret_testnet_binance, True)
     bitmex = BitmexClient(config.api_key_testnet_bitmex, config.api_secret_testnet_bitmex, True)
 
-    bitmex.get_historical_candles(bitmex.contracts['XBTUSD'], '1h')
-
-    root = tk.Tk()
+    root = Root(binance, bitmex)
     root.mainloop()
