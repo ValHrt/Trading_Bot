@@ -8,7 +8,7 @@ class StrategyEditor(tk.Frame):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        self._all_contracts = []
+        self._all_contracts = ["BTCUSDT", "ETHUSDT"]
         self._all_timeframes = ["1m", "5m", "15m", "30m", "1h", "4h"]
 
         self._commands_frame = tk.Frame(self, bg=BG_COLOR)
@@ -57,13 +57,39 @@ class StrategyEditor(tk.Frame):
     def _add_strategy_row(self):
         b_index = self._body_index
 
+        for col, base_param in enumerate(self._base_params):
+            code_name = base_param['code_name']
+            if base_param["widget"] == tk.OptionMenu:
+                self.body_widgets[code_name + "_var"][b_index] = tk.StringVar()
+                self.body_widgets[code_name][b_index] = tk.OptionMenu(self._table_frame,
+                                                                      self.body_widgets[code_name + "_var"][b_index],
+                                                                      *base_param["values"])
+                self.body_widgets[code_name][b_index].config(width=base_param["width"])
+
+            elif base_param["widget"] == tk.Entry:
+                self.body_widgets[code_name][b_index] = tk.Entry(self._table_frame, justify=tk.CENTER)
+
+            elif base_param["widget"] == tk.Button:
+                self.body_widgets[code_name][b_index] = tk.Button(self._table_frame, text=base_param["text"],
+                                        bg=base_param["bg"], fg=FG_COLOR,
+                                        command=lambda frozen_command=base_param["command"]: frozen_command(b_index))
+
+            else:
+                continue
+
+            self.body_widgets[code_name][b_index].grid(row=b_index, column=col)
+
         self._body_index += 1
 
-    def _delete_row(self):
+    def _delete_row(self, b_index: int):
+
+        for element in self._base_params:
+            self.body_widgets[element["code_name"]][b_index].grid_forget()
+
+            del self.body_widgets[element["code_name"]][b_index]
+
+    def _show_popup(self, b_index: int):
         return
 
-    def _show_popup(self):
-        return
-
-    def _switch_strategy(self):
+    def _switch_strategy(self, b_index: int):
         return
